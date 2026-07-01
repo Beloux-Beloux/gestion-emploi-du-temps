@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { Cours, CoursFormData, Professeur, Salle } from '../types';
 
 const api = axios.create({
-  baseURL: 'https://gestion-emploi-du-temps-api.onrender.com/api',
+  baseURL: 'https://gestion-emploi-du-temps.onrender.com/api',
 });
 
 export const professeurService = {
