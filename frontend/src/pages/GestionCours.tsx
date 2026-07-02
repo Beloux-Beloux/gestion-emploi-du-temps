@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import type { Cours, CoursFormData, Professeur, Salle } from '../types';
 import { coursService, professeurService, salleService } from '../services/api';
+import Loading from '../components/Loading';
 
 const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 const NIVEAUX = ['L1', 'L2', 'L3', 'M1'];
@@ -17,6 +19,7 @@ export default function GestionCours({ onCoursChange }: Props) {
   const [salles, setSalles] = useState<Salle[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Cours | null>(null);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<CoursFormData>({
     titre: '', professeur_id: '', salle_id: '', niveau: 'L1', groupe: 'Grp1',
     jour: 'Lundi', heure_debut: '08:00', heure_fin: '09:00', couleur: '#3B82F6',
@@ -25,14 +28,21 @@ export default function GestionCours({ onCoursChange }: Props) {
   useEffect(() => { charger(); }, []);
 
   const charger = async () => {
-    const [coursRes, profRes, salleRes] = await Promise.all([
-      coursService.getAll(),
-      professeurService.getAll(),
-      salleService.getAll(),
-    ]);
-    setCoursList(coursRes.data);
-    setProfesseurs(profRes.data);
-    setSalles(salleRes.data);
+    setLoading(true);
+    try {
+      const [coursRes, profRes, salleRes] = await Promise.all([
+        coursService.getAll(),
+        professeurService.getAll(),
+        salleService.getAll(),
+      ]);
+      setCoursList(coursRes.data);
+      setProfesseurs(profRes.data);
+      setSalles(salleRes.data);
+    } catch (error) {
+      toast.error('Erreur lors du chargement');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,8 +50,10 @@ export default function GestionCours({ onCoursChange }: Props) {
     try {
       if (editing) {
         await coursService.update(editing.id, form);
+        toast.success('Cours modifié avec succès');
       } else {
         await coursService.create(form);
+        toast.success('Cours ajouté avec succès');
       }
       setShowForm(false);
       setEditing(null);
@@ -49,7 +61,7 @@ export default function GestionCours({ onCoursChange }: Props) {
       charger();
       onCoursChange();
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Erreur');
+      toast.error(error.response?.data?.error || 'Erreur lors de la sauvegarde');
     }
   };
 
@@ -60,12 +72,18 @@ export default function GestionCours({ onCoursChange }: Props) {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Supprimer ce cours ?')) {
+    if (!window.confirm('Supprimer ce cours ?')) return;
+    try {
       await coursService.delete(id);
+      toast.success('Cours supprimé');
       charger();
       onCoursChange();
+    } catch (error) {
+      toast.error('Erreur lors de la suppression');
     }
   };
+
+  if (loading) return <Loading message="Chargement des cours..." />;
 
   return (
     <div>
@@ -173,7 +191,7 @@ export default function GestionCours({ onCoursChange }: Props) {
               </tr>
             ))}
             {coursList.length === 0 && (
-              <tr><td colSpan={7} className="p-6 text-center text-gray-400">Aucun cours. Ajoutez d'abord des professeurs et des salles.</td></tr>
+              <tr><td colSpan={7} className="p-6 text-center text-gray-400">Aucun cours</td></tr>
             )}
           </tbody>
         </table>

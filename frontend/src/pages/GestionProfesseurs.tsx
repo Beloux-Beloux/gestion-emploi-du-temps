@@ -1,31 +1,47 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import type { Professeur } from '../types';
 import { professeurService } from '../services/api';
+import Loading from '../components/Loading';
 
 export default function GestionProfesseurs() {
   const [professeurs, setProfesseurs] = useState<Professeur[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Professeur | null>(null);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ nom: '', prenom: '', email: '', specialite: '' });
 
   useEffect(() => { charger(); }, []);
 
   const charger = async () => {
-    const res = await professeurService.getAll();
-    setProfesseurs(res.data);
+    setLoading(true);
+    try {
+      const res = await professeurService.getAll();
+      setProfesseurs(res.data);
+    } catch (error) {
+      toast.error('Erreur lors du chargement');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) {
-      await professeurService.update(editing.id, form);
-    } else {
-      await professeurService.create(form);
+    try {
+      if (editing) {
+        await professeurService.update(editing.id, form);
+        toast.success('Professeur modifié avec succès');
+      } else {
+        await professeurService.create(form);
+        toast.success('Professeur ajouté avec succès');
+      }
+      setShowForm(false);
+      setEditing(null);
+      setForm({ nom: '', prenom: '', email: '', specialite: '' });
+      charger();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de la sauvegarde');
     }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ nom: '', prenom: '', email: '', specialite: '' });
-    charger();
   };
 
   const handleEdit = (p: Professeur) => {
@@ -35,11 +51,17 @@ export default function GestionProfesseurs() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Supprimer ce professeur ?')) {
+    if (!window.confirm('Supprimer ce professeur ?')) return;
+    try {
       await professeurService.delete(id);
+      toast.success('Professeur supprimé');
       charger();
+    } catch (error) {
+      toast.error('Erreur lors de la suppression');
     }
   };
+
+  if (loading) return <Loading message="Chargement des professeurs..." />;
 
   return (
     <div>

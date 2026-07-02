@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Toaster } from 'react-hot-toast';
 import GestionProfesseurs from './pages/GestionProfesseurs';
 import GestionSalles from './pages/GestionSalles';
 import GestionCours from './pages/GestionCours';
@@ -19,6 +20,24 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+            fontSize: '14px',
+          },
+          success: {
+            style: { background: '#22c55e' },
+          },
+          error: {
+            style: { background: '#ef4444' },
+          },
+        }}
+      />
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">

@@ -1,31 +1,47 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import type { Salle } from '../types';
 import { salleService } from '../services/api';
+import Loading from '../components/Loading';
 
 export default function GestionSalles() {
   const [salles, setSalles] = useState<Salle[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Salle | null>(null);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ nom: '', capacite: 30 });
 
   useEffect(() => { charger(); }, []);
 
   const charger = async () => {
-    const res = await salleService.getAll();
-    setSalles(res.data);
+    setLoading(true);
+    try {
+      const res = await salleService.getAll();
+      setSalles(res.data);
+    } catch (error) {
+      toast.error('Erreur lors du chargement');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) {
-      await salleService.update(editing.id, form);
-    } else {
-      await salleService.create(form);
+    try {
+      if (editing) {
+        await salleService.update(editing.id, form);
+        toast.success('Salle modifiée avec succès');
+      } else {
+        await salleService.create(form);
+        toast.success('Salle ajoutée avec succès');
+      }
+      setShowForm(false);
+      setEditing(null);
+      setForm({ nom: '', capacite: 30 });
+      charger();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de la sauvegarde');
     }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ nom: '', capacite: 30 });
-    charger();
   };
 
   const handleEdit = (s: Salle) => {
@@ -35,11 +51,17 @@ export default function GestionSalles() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Supprimer cette salle ?')) {
+    if (!window.confirm('Supprimer cette salle ?')) return;
+    try {
       await salleService.delete(id);
+      toast.success('Salle supprimée');
       charger();
+    } catch (error) {
+      toast.error('Erreur lors de la suppression');
     }
   };
+
+  if (loading) return <Loading message="Chargement des salles..." />;
 
   return (
     <div>
